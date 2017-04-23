@@ -18,6 +18,14 @@
  */
 package org.jbehavesupport.runner;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.jbehave.core.ConfigurableEmbedder;
 import org.jbehave.core.configuration.Configuration;
 import org.jbehave.core.embedder.Embedder;
@@ -25,36 +33,44 @@ import org.jbehave.core.embedder.PerformableTree;
 import org.jbehave.core.failures.BatchFailures;
 import org.jbehave.core.junit.JUnitStory;
 import org.jbehave.core.model.Story;
+import org.jbehave.core.reporters.StoryReporter;
 import org.jbehave.core.steps.CandidateSteps;
 import org.jbehave.core.steps.NullStepMonitor;
+import org.jbehavesupport.runner.description.StoryParser;
+import org.jbehavesupport.runner.description.StoryResult;
+import org.jbehavesupport.runner.reporter.JUnitStepReporter;
+import org.jbehavesupport.runner.reporter.JUnitStoryReporter;
 import org.junit.runner.Description;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.Statement;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * @author Michal Bocek
  * @since 26/08/16
  */
+@Slf4j
 public class JUnitRunner extends BlockJUnit4ClassRunner {
+
+    @Getter
+    private final Description description;
 
     private final List<String> storyPaths;
     private final List<CandidateSteps> candidateSteps;
-    private final Description description;
     private final Embedder configuredEmbedder;
+    private final String reportLevel;
+
+    public enum ReportLevel {
+        STEP, STORY
+    }
 
     public JUnitRunner(Class<? extends ConfigurableEmbedder> testClass)
         throws InitializationError, IllegalAccessException, InstantiationException, InvocationTargetException,
         NoSuchMethodException {
 
         super(testClass);
+        reportLevel = System.getProperty("jbehave.report.level", ReportLevel.STEP.name());
         ConfigurableEmbedder configurableEmbedder = testClass.newInstance();
         configuredEmbedder = configurableEmbedder.configuredEmbedder();
         storyPaths = getStoryPaths(configurableEmbedder);
@@ -63,17 +79,11 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
     }
 
     @Override
-    public Description getDescription() {
-        return description;
-    }
-
-    @Override
     protected Statement childrenInvoker(final RunNotifier notifier) {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
-                JUnitStepReporter junitReporter = new JUnitStepReporter(notifier, description,
-                    configuredEmbedder.configuration());
+                StoryReporter junitReporter = resolveReporter(reportLevel);
 
                 configuredEmbedder.configuration()
                     .storyReporterBuilder()
@@ -85,6 +95,17 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
                     throw new RuntimeException(e);
                 } finally {
                     configuredEmbedder.generateCrossReference();
+                }
+            }
+
+            private StoryReporter resolveReporter(String reportLevel) {
+                switch (ReportLevel.valueOf(reportLevel)) {
+                    case STEP:
+                        return new JUnitStepReporter(notifier, description, configuredEmbedder.configuration());
+                    case STORY:
+                        return new JUnitStoryReporter(notifier, description, configuredEmbedder.configuration());
+                    default:
+                        throw new IllegalStateException("Report level does not exists: " + reportLevel);
                 }
             }
         };
@@ -104,7 +125,7 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
     }
 
     private void addStories(List<Description> descriptions, Configuration configuration) {
-        StoryParser.StoryResult storyResult = StoryParser.parse(createPerformableTree())
+        StoryResult storyResult = StoryParser.parse(createPerformableTree(), ReportLevel.valueOf(reportLevel))
             .withCandidateSteps(candidateSteps)
             .withKeywords(configuration.keywords())
             .buildDescription();
@@ -116,7 +137,8 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
         BatchFailures failures = new BatchFailures(configuredEmbedder.embedderControls().verboseFailures());
         PerformableTree performableTree = new PerformableTree();
         PerformableTree.RunContext context = performableTree.newRunContext(configuredEmbedder.configuration(),
-            configuredEmbedder.stepsFactory(), configuredEmbedder.embedderMonitor(),
+            configuredEmbedder.stepsFactory(),
+            configuredEmbedder.embedderMonitor(),
             configuredEmbedder.metaFilter(), failures);
 
         List<Story> stories = new ArrayList<>();

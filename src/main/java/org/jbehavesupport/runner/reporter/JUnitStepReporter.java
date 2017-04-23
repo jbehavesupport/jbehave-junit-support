@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.jbehavesupport.runner;
+package org.jbehavesupport.runner.reporter;
 
 import org.jbehave.core.configuration.Configuration;
 import org.jbehave.core.failures.UUIDExceptionWrapper;
 import org.jbehave.core.model.Story;
+import org.jbehavesupport.runner.JUnitRunnerFormatter;
 import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunNotifier;

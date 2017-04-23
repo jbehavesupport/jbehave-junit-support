@@ -16,14 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.jbehavesupport.runner;
-
-import lombok.extern.slf4j.Slf4j;
-import org.jbehave.core.model.*;
-import org.jbehave.core.reporters.NullStoryReporter;
+package org.jbehavesupport.runner.reporter;
 
 import java.util.List;
 import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
+import org.jbehave.core.model.ExamplesTable;
+import org.jbehave.core.model.GivenStories;
+import org.jbehave.core.model.Lifecycle;
+import org.jbehave.core.model.Meta;
+import org.jbehave.core.model.Narrative;
+import org.jbehave.core.model.OutcomesTable;
+import org.jbehave.core.model.Scenario;
+import org.jbehave.core.model.Story;
+import org.jbehave.core.model.StoryDuration;
+import org.jbehave.core.reporters.NullStoryReporter;
 
 /**
  * @author Michal Bocek
