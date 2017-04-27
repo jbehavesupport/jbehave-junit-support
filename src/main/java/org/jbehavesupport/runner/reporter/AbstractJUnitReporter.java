@@ -16,29 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.jbehavesupport.runner.reporter;
 
-package org.jbehavesupport.runner.description;
-
-import org.jbehave.core.embedder.PerformableTree;
 import org.jbehave.core.model.Story;
 import org.junit.runner.Description;
 
 import static org.jbehavesupport.runner.JUnitRunnerFormatter.buildStoryText;
 import static org.jbehavesupport.runner.JUnitRunnerFormatter.normalizeStoryName;
-import static org.junit.runner.Description.createTestDescription;
 
 /**
  * @author Michal Bocek
- * @since 4/23/2017
+ * @since 25/04/2017
  */
-class StoryLevelDescriptionBuilder extends AbstractDescriptionBuilder {
-    public StoryLevelDescriptionBuilder(final PerformableTree story) {
-        super(story);
+public class AbstractJUnitReporter extends LoggingReporter {
+    protected static final String BEFORE_STORIES = "BeforeStories";
+    protected static final String AFTER_STORIES = "AfterStories";
+
+    protected boolean givenStory;
+
+    protected boolean isEligibleAs(Story story, Description description, String storyName) {
+        return story.getName().equals(storyName) && description.getDisplayName().startsWith(storyName);
     }
 
-    @Override
-    protected Description createStoryDescription(final PerformableTree.PerformableStory story) {
-        addTestCount();
-        return createTestDescription(Story.class, buildStoryText(normalizeStoryName(story.getStory().getName())));
+    protected boolean isEligibleAs(Description description, String storyName) {
+        return description.getDisplayName().startsWith(buildStoryText(normalizeStoryName(storyName)));
+    }
+
+    protected boolean isAGivenStory() {
+        return this.givenStory;
+    }
+
+    protected boolean notAGivenStory() {
+        return !this.givenStory;
     }
 }

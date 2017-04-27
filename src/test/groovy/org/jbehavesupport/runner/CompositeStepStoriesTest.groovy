@@ -21,20 +21,20 @@ package org.jbehavesupport.runner
 import org.jbehavesupport.runner.story.CompositeStepStories
 import org.junit.runner.Description
 import org.junit.runner.notification.RunNotifier
-import spock.lang.Shared
 import spock.lang.Specification
-
+import spock.util.environment.RestoreSystemProperties
 /**
  * @author Michal Bocek
  * @since 26/08/16
  */
 class CompositeStepStoriesTest extends Specification {
 
-    @Shared
-    runner = new JUnitRunner(CompositeStepStories)
     def notifier = Mock(RunNotifier)
 
     def "Test correct notifications"() {
+        given:
+        def runner = new JUnitRunner(CompositeStepStories)
+
         when:
         runner.run(notifier)
 
@@ -72,6 +72,9 @@ class CompositeStepStoriesTest extends Specification {
     }
 
     def "Test descriptions"() {
+        given:
+        def runner = new JUnitRunner(CompositeStepStories)
+
         when:
         def desc = runner.description
         def children = desc.children
@@ -87,5 +90,47 @@ class CompositeStepStoriesTest extends Specification {
         children[1].children[0].children[0].children[0].displayName =~ /When Sign up(.*)/
         children[1].children[0].children[0].children[1].displayName =~ /When Auditing user(.*)/
         children[2].displayName =~ /AfterStories.*/
+    }
+
+    @RestoreSystemProperties
+    def "Test correct notifications for story level reporter"() {
+        given:
+        System.setProperty("jbehave.report.level", "STORY")
+        def runner = new JUnitRunner(CompositeStepStories)
+
+        when:
+        runner.run(notifier)
+
+        then:
+        1 * notifier.fireTestStarted({it.displayName.startsWith("BeforeStories")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.startsWith("BeforeStories")} as Description)
+        then:
+        1 * notifier.fireTestStarted({it.displayName.startsWith("Story: CompositeStep")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.startsWith("Story: CompositeStep")} as Description)
+        then:
+        1 * notifier.fireTestStarted({it.displayName.startsWith("AfterStories")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.startsWith("AfterStories")} as Description)
+    }
+
+    @RestoreSystemProperties
+    def "Test descriptions for story level reporter"() {
+        given:
+        System.setProperty("jbehave.report.level", "STORY")
+        def runner = new JUnitRunner(CompositeStepStories)
+
+        when:
+        def desc = runner.description
+        def children = desc.children
+
+        then:
+        desc.testClass == CompositeStepStories
+        children.size() == 3
+        children[0].displayName =~ "BeforeStories"
+        children[1].displayName =~ "Story: CompositeStep"
+        children[1].children.size() == 0
+        children[2].displayName =~ "AfterStories"
     }
 }

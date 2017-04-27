@@ -19,12 +19,6 @@
 
 package org.jbehavesupport.runner.description;
 
-import static org.junit.runner.Description.createTestDescription;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import org.jbehave.core.configuration.Keywords;
 import org.jbehave.core.embedder.PerformableTree;
@@ -32,6 +26,12 @@ import org.jbehave.core.model.Story;
 import org.jbehave.core.steps.CandidateSteps;
 import org.jbehave.core.steps.StepCandidate;
 import org.junit.runner.Description;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.junit.runner.Description.createTestDescription;
 
 /**
  * @author Michal Bocek
@@ -73,8 +73,9 @@ public abstract class AbstractDescriptionBuilder implements DescriptionBuilder {
 
     @Override
     public StoryResult buildDescription() {
-        List<PerformableTree.PerformableStory> stories = story.getRoot().getStories();
-        List<Description> descriptions = stories.stream()
+        List<Description> descriptions = story.getRoot()
+            .getStories()
+            .stream()
             .map(this::createStoryDescription)
             .collect(Collectors.toList());
         descriptions.add(0, createTestDescription(Story.class, STORIES_BEFORE));
