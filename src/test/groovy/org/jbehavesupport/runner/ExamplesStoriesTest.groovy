@@ -21,19 +21,21 @@ package org.jbehavesupport.runner
 import org.jbehavesupport.runner.story.ExamplesStories
 import org.junit.runner.Description
 import org.junit.runner.notification.RunNotifier
-import spock.lang.Shared
 import spock.lang.Specification
+import spock.util.environment.RestoreSystemProperties
+
 /**
  * @author Michal Bocek
  * @since 13/03/17
  */
 class ExamplesStoriesTest extends Specification {
 
-    @Shared
-    runner = new JUnitRunner(ExamplesStories)
     def notifier = Mock(RunNotifier)
 
     def "Test correct notifications"() {
+        given:
+        def runner = new JUnitRunner(ExamplesStories)
+
         when:
         runner.run(notifier)
 
@@ -88,6 +90,9 @@ class ExamplesStoriesTest extends Specification {
     }
 
     def "Test descriptions"() {
+        given:
+        def runner = new JUnitRunner(ExamplesStories)
+
         when:
         def desc = runner.description
         def children = desc.children
@@ -107,5 +112,47 @@ class ExamplesStoriesTest extends Specification {
         children[1].children[0].children[1].children[1].displayName =~ /When I submit login data on.*/
         children[1].children[0].children[1].children[2].displayName =~ /Then user should be logged in.*/
         children[2].displayName =~ /AfterStories.*/
+    }
+
+    @RestoreSystemProperties
+    def "Test correct notifications for story level reporter"() {
+        given:
+        System.setProperty("jbehave.report.level", "STORY")
+        def runner = new JUnitRunner(ExamplesStories)
+
+        when:
+        runner.run(notifier)
+
+        then:
+        1 * notifier.fireTestStarted({it.displayName.startsWith("BeforeStories")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.startsWith("BeforeStories")} as Description)
+        then:
+        1 * notifier.fireTestStarted({it.displayName.startsWith("Story: Examples")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.startsWith("Story: Examples")} as Description)
+        then:
+        1 * notifier.fireTestStarted({it.displayName.startsWith("AfterStories")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.startsWith("AfterStories")} as Description)
+    }
+
+    @RestoreSystemProperties
+    def "Test descriptions for story level reporter"() {
+        given:
+        System.setProperty("jbehave.report.level", "STORY")
+        def runner = new JUnitRunner(ExamplesStories)
+
+        when:
+        def desc = runner.description
+        def children = desc.children
+
+        then:
+        desc.testClass == ExamplesStories
+        children.size() == 3
+        children[0].displayName =~ "BeforeStories"
+        children[1].displayName =~ "Story: Examples"
+        children[1].children.size() == 0
+        children[2].displayName =~ "AfterStories"
     }
 }

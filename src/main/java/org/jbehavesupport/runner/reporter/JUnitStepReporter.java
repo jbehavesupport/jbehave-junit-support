@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.jbehavesupport.runner;
+package org.jbehavesupport.runner.reporter;
 
 import org.jbehave.core.configuration.Configuration;
 import org.jbehave.core.failures.UUIDExceptionWrapper;
@@ -36,10 +36,7 @@ import static java.util.Objects.nonNull;
  * @author Michal Bocek
  * @since 29/08/16
  */
-public class JUnitStepReporter extends LoggingReporter {
-
-    private static final String BEFORE_STORIES = "BeforeStories";
-    private static final String AFTER_STORIES = "AfterStories";
+public class JUnitStepReporter extends AbstractJUnitReporter {
 
     private final RunNotifier notifier;
     private final Description rootDescription;
@@ -52,7 +49,6 @@ public class JUnitStepReporter extends LoggingReporter {
     private Description currentExampleDescription;
     private Iterator<Description> stepsDescriptions;
     private Description currentStepDescription;
-    private boolean givenStory;
 
     public JUnitStepReporter(RunNotifier notifier, Description rootDescription,
                              Configuration configuration) {
@@ -68,23 +64,27 @@ public class JUnitStepReporter extends LoggingReporter {
             notifier.fireTestStarted(currentStepDescription);
             this.givenStory = true;
         } else {
-            for (Description description : rootDescription.getChildren()) {
-                if (description.isTest()
-                    && (isEligibleAs(story, description, BEFORE_STORIES)
-                    || isEligibleAs(story, description, AFTER_STORIES))) {
-                    currentStoryDescription = description;
-                    notifier.fireTestStarted(currentStoryDescription);
-
-                }
-                if (description.isSuite()
-                    && isEligibleAs(description, story.getName())) {
-                    currentStoryDescription = description;
-                    notifier.fireTestStarted(currentStoryDescription);
-                    scenariosDescriptions = currentStoryDescription.getChildren().iterator();
-                }
-            }
+            beforeStory(story);
         }
         super.beforeStory(story, givenStory);
+    }
+
+    private void beforeStory(Story story) {
+        for (Description description : rootDescription.getChildren()) {
+            if (description.isTest()
+                && (isEligibleAs(story, description, BEFORE_STORIES)
+                || isEligibleAs(story, description, AFTER_STORIES))) {
+                currentStoryDescription = description;
+                notifier.fireTestStarted(currentStoryDescription);
+
+            }
+            if (description.isSuite()
+                && isEligibleAs(description, story.getName())) {
+                currentStoryDescription = description;
+                notifier.fireTestStarted(currentStoryDescription);
+                scenariosDescriptions = currentStoryDescription.getChildren().iterator();
+            }
+        }
     }
 
     @Override
@@ -125,10 +125,10 @@ public class JUnitStepReporter extends LoggingReporter {
 
     private List<Description> getAllChildren(ArrayList<Description> children, List<Description> result) {
         for (Description description : children) {
-            if (description.isSuite()) {
-                if (!isExample(description)) {
-                    result.add(description);
-                }
+            if (description.isSuite() && !isExample(description)) {
+                result.add(description);
+                getAllChildren(description.getChildren(), result);
+            } else if (description.isSuite()) {
                 getAllChildren(description.getChildren(), result);
             } else {
                 result.add(description);
@@ -210,21 +210,5 @@ public class JUnitStepReporter extends LoggingReporter {
             notifier.fireTestFinished(currentExampleDescription);
         }
         super.afterExamples();
-    }
-
-    private boolean isEligibleAs(Story story, Description description, String storyName) {
-        return story.getName().equals(storyName) && description.getDisplayName().startsWith(storyName);
-    }
-
-    private boolean isEligibleAs(Description description, String storyName) {
-        return description.getDisplayName().equals(JUnitRunnerFormatter.buildStoryText(JUnitRunnerFormatter.normalizeStoryName(storyName)));
-    }
-
-    private boolean isAGivenStory() {
-        return this.givenStory;
-    }
-
-    private boolean notAGivenStory() {
-        return !this.givenStory;
     }
 }
