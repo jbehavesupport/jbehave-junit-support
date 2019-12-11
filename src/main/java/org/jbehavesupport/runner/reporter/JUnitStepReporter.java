@@ -93,6 +93,13 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
         }
     }
 
+    private Description getStepDescriptionByName(String step) {
+        return getAllChildren(currentScenarioDescription.getChildren(), new ArrayList<>()).stream()
+            .filter(description -> description.getDisplayName().startsWith(step))
+            .findAny()
+            .orElse(currentStepDescription);
+    }
+
     @Override
     public void afterStory(boolean givenOrRestartingStory) {
         super.afterStory(givenOrRestartingStory);
@@ -167,7 +174,11 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     public void successful(String step) {
         super.successful(step);
         if (notAGivenStory()) {
-            notifier.fireTestFinished(currentStepDescription);
+            if (currentStepDescription.getDisplayName().startsWith(step)) {
+                notifier.fireTestFinished(currentStepDescription);
+            } else {
+                notifier.fireTestFinished(getStepDescriptionByName(step));
+            }
         }
     }
 

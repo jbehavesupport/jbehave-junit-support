@@ -51,8 +51,6 @@ class FailedStepStoriesTest extends Specification {
         then:
         1 * notifier.fireTestStarted({it.displayName.contains("When Sign up with audit")} as Description)
         then:
-        1 * notifier.fireTestFinished({it.displayName.contains("When Sign up with audit")} as Description)
-        then:
         1 * notifier.fireTestStarted({it.displayName.contains("When Sign up user")} as Description)
         then:
         1 * notifier.fireTestFinished({it.displayName.contains("When Sign up user")} as Description)
@@ -60,6 +58,8 @@ class FailedStepStoriesTest extends Specification {
         1 * notifier.fireTestStarted({it.displayName.contains("When Auditing user")} as Description)
         then:
         1 * notifier.fireTestFinished({it.displayName.contains("When Auditing user")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.contains("When Sign up with audit")} as Description)
         then:
         1 * notifier.fireTestStarted({it.displayName.contains("Then Failed step")} as Description)
         then:

@@ -30,8 +30,6 @@ import spock.util.environment.RestoreSystemProperties
 class CompositeStepStoriesTest extends Specification {
 
     def notifier = Mock(RunNotifier)
-    // JUnitStepReporter:170 - wrong value currentStepDescription - any reason why its taken from iterator
-    // and not from the list based on the step name?
 
     def "Test correct notifications"() {
         given:
