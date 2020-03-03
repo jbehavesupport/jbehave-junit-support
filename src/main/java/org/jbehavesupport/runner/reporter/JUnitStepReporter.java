@@ -25,10 +25,7 @@ import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunNotifier;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Objects.nonNull;
 
@@ -48,7 +45,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     private Iterator<Description> examplesDescriptions;
     private Description currentExampleDescription;
     private Iterator<Description> stepsDescriptions;
-    private Description currentStepDescription;
+    private Deque<Description> currentStepDescription = new ArrayDeque<>();
 
     public JUnitStepReporter(RunNotifier notifier, Description rootDescription,
                              Configuration configuration) {
@@ -61,8 +58,8 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     public void beforeStory(Story story, boolean givenStory) {
         if (givenStory) {
             if (notAGivenStory()) {
-                currentStepDescription = hasNextStepsDescriptions() ? stepsDescriptions.next() : scenariosDescriptions.next();
-                notifier.fireTestStarted(currentStepDescription);
+                currentStepDescription.push(hasNextStepsDescriptions() ? stepsDescriptions.next() : scenariosDescriptions.next());
+                notifier.fireTestStarted(currentStepDescription.peek());
             }
             this.givenStories++;
         } else {
@@ -97,7 +94,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     public void afterStory(boolean givenOrRestartingStory) {
         super.afterStory(givenOrRestartingStory);
         if (this.givenStories == 1) {
-            notifier.fireTestFinished(currentStepDescription);
+            notifier.fireTestFinished(currentStepDescription.pop());
             this.givenStories--;
         } else if (isAGivenStory()) {
             this.givenStories--;
@@ -157,8 +154,8 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     @Override
     public void beforeStep(String step) {
         if (notAGivenStory()) {
-            currentStepDescription = stepsDescriptions.next();
-            notifier.fireTestStarted(currentStepDescription);
+            currentStepDescription.push(stepsDescriptions.next());
+            notifier.fireTestStarted(currentStepDescription.peek());
         }
         super.beforeStep(step);
     }
@@ -167,7 +164,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     public void successful(String step) {
         super.successful(step);
         if (notAGivenStory()) {
-            notifier.fireTestFinished(currentStepDescription);
+            notifier.fireTestFinished(currentStepDescription.pop());
         }
     }
 
@@ -177,9 +174,9 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
             cause = cause.getCause();
         }
         super.failed(step, cause);
-        notifier.fireTestFailure(new Failure(currentStepDescription, cause));
+        notifier.fireTestFailure(new Failure(currentStepDescription.peek(), cause));
         if (notAGivenStory()) {
-            notifier.fireTestFinished(currentStepDescription);
+            notifier.fireTestFinished(currentStepDescription.peek());
         }
     }
 
@@ -187,8 +184,8 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     public void notPerformed(String step) {
         super.notPerformed(step);
         if (notAGivenStory()) {
-            currentStepDescription = stepsDescriptions.next();
-            notifier.fireTestIgnored(currentStepDescription);
+            currentStepDescription.push(stepsDescriptions.next());
+            notifier.fireTestIgnored(currentStepDescription.peek());
         }
     }
 
@@ -196,8 +193,8 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     public void pending(String step) {
         super.pending(step);
         if (notAGivenStory()) {
-            currentStepDescription = stepsDescriptions.next();
-            notifier.fireTestIgnored(currentStepDescription);
+            currentStepDescription.push(stepsDescriptions.next());
+            notifier.fireTestIgnored(currentStepDescription.peek());
         }
     }
 
@@ -225,8 +222,8 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     public void ignorable(String step) {
         super.ignorable(step);
         if (notAGivenStory()) {
-            currentStepDescription = stepsDescriptions.next();
-            notifier.fireTestIgnored(currentStepDescription);
+            currentStepDescription.push(stepsDescriptions.next());
+            notifier.fireTestIgnored(currentStepDescription.peek());
         }
     }
 }

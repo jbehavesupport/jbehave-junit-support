@@ -46,13 +46,8 @@ class CompositeStepStoriesTest extends Specification {
         1 * notifier.fireTestStarted({it.displayName.equals("Story: CompositeStep")} as Description)
         then:
         1 * notifier.fireTestStarted({it.displayName.equals("Scenario: Composite step")} as Description)
-        /*
-         * Composite step is fully reported (success) before running children steps
-         */
         then:
         1 * notifier.fireTestStarted({it.displayName.contains("When Sign up with audit")} as Description)
-        then:
-        1 * notifier.fireTestFinished({it.displayName.contains("When Sign up with audit")} as Description)
         then:
         1 * notifier.fireTestStarted({it.displayName.contains("When Sign up user")} as Description)
         then:
@@ -61,6 +56,8 @@ class CompositeStepStoriesTest extends Specification {
         1 * notifier.fireTestStarted({it.displayName.contains("When Auditing user")} as Description)
         then:
         1 * notifier.fireTestFinished({it.displayName.contains("When Auditing user")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.contains("When Sign up with audit")} as Description)
         then:
         1 * notifier.fireTestFinished({it.displayName.equals("Scenario: Composite step")} as Description)
         then:
