@@ -95,6 +95,7 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
                     throw new RuntimeException(e);
                 } finally {
                     configuredEmbedder.generateCrossReference();
+                    configuredEmbedder.generateSurefireReport();
                 }
             }
 
