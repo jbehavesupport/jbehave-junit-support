@@ -35,7 +35,7 @@
 
     <properties>
         <version.jdk>1.8</version.jdk>
-        <version.junit>4.13</version.junit>
+        <version.junit>4.13.1</version.junit>
         <version.jbehave>4.8</version.jbehave>
         <version.slf4j>1.7.30</version.slf4j>
         <version.groovy>2.5.7</version.groovy>
