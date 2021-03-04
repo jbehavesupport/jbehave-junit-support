@@ -43,7 +43,7 @@ class MultipleStoryTest extends Specification {
         then:
         1 * notifier.fireTestFinished({it.displayName.startsWith("BeforeStories")} as Description)
         then:
-        1 * notifier.fireTestStarted({it.displayName.equals("Story: Scenario01")} as Description)
+        1 * notifier.fireTestStarted({it.displayName.equals("Story: Scenario01-1")} as Description)
         then:
         1 * notifier.fireTestStarted({it.displayName.equals("Scenario: login to system 1")} as Description)
         then:
@@ -61,9 +61,9 @@ class MultipleStoryTest extends Specification {
         then:
         1 * notifier.fireTestFinished({it.displayName.equals("Scenario: login to system 1")} as Description)
         then:
-        1 * notifier.fireTestFinished({it.displayName.equals("Story: Scenario01")} as Description)
+        1 * notifier.fireTestFinished({it.displayName.equals("Story: Scenario01-1")} as Description)
         then:
-        1 * notifier.fireTestStarted({it.displayName.equals("Story: Scenario01-1")} as Description)
+        1 * notifier.fireTestStarted({it.displayName.equals("Story: Scenario01")} as Description)
         then:
         1 * notifier.fireTestStarted({it.displayName.equals("Scenario: login to system 2")} as Description)
         then:
@@ -81,7 +81,7 @@ class MultipleStoryTest extends Specification {
         then:
         1 * notifier.fireTestFinished({it.displayName.equals("Scenario: login to system 2")} as Description)
         then:
-        1 * notifier.fireTestFinished({it.displayName.equals("Story: Scenario01-1")} as Description)
+        1 * notifier.fireTestFinished({it.displayName.equals("Story: Scenario01")} as Description)
         then:
         1 * notifier.fireTestStarted({it.displayName.equals("Story: Scenario03")} as Description)
         then:
@@ -119,16 +119,17 @@ class MultipleStoryTest extends Specification {
         then:
         desc.testClass == MultipleStories
         children.size() == 5
+        // children are in the order they are defined in storyPaths, the actual run order depends on StoryExecutionComparator
         children[0].displayName =~ /BeforeStories.*/
         children[1].displayName == "Story: Scenario01"
-        children[1].children[0].displayName == "Scenario: login to system 1"
+        children[1].children[0].displayName == "Scenario: login to system 2"
         children[1].children[0].children[0].displayName =~ /.*Given login with data/
-        children[1].children[0].children[1].displayName =~ /.*When I submit login data on http:\/\/test01/
+        children[1].children[0].children[1].displayName =~ /.*When I submit login data on http:\/\/test02/
         children[1].children[0].children[2].displayName =~ /.*Then user should be logged in successful/
         children[2].displayName == "Story: Scenario01-1"
-        children[2].children[0].displayName == "Scenario: login to system 2"
+        children[2].children[0].displayName == "Scenario: login to system 1"
         children[2].children[0].children[0].displayName =~ /.*Given login with data/
-        children[2].children[0].children[1].displayName =~ /.*When I submit login data on http:\/\/test02/
+        children[2].children[0].children[1].displayName =~ /.*When I submit login data on http:\/\/test01/
         children[2].children[0].children[2].displayName =~ /.*Then user should be logged in successful/
         children[3].displayName == "Story: Scenario03"
         children[3].children[0].displayName == "Scenario: login to system 3"
@@ -148,13 +149,13 @@ class MultipleStoryTest extends Specification {
         runner.run(notifier)
 
         then:
-        1 * notifier.fireTestStarted({it.displayName.startsWith("Story: Scenario01")} as Description)
-        then:
-        1 * notifier.fireTestFinished({it.displayName.startsWith("Story: Scenario01")} as Description)
-        then:
         1 * notifier.fireTestStarted({it.displayName.startsWith("Story: Scenario01-1")} as Description)
         then:
         1 * notifier.fireTestFinished({it.displayName.startsWith("Story: Scenario01-1")} as Description)
+        then:
+        1 * notifier.fireTestStarted({it.displayName.startsWith("Story: Scenario01")} as Description)
+        then:
+        1 * notifier.fireTestFinished({it.displayName.startsWith("Story: Scenario01")} as Description)
         then:
         1 * notifier.fireTestStarted({it.displayName.startsWith("Story: Scenario03")} as Description)
         then:

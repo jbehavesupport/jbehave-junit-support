@@ -1,4 +1,4 @@
-Scenario: login to system 2
+Scenario: login to system 1
 Given login with data:
 |username  |password   |
 |JohnDow   |Passw0rd   |
@@ -31,5 +31,5 @@ Given login with data:
 |JohnDow   |Passw0rd   |
 |JohnDow   |Passw0rd   |
 |JohnDow   |Passw0rd   |
-When I submit login data on http://test02
+When I submit login data on http://test01
 Then user should be logged in successful
