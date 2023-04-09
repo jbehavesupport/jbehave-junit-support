@@ -35,6 +35,7 @@ public class BasicStory extends JUnit5Story {
 ```
 
 ### JUnit 4
+To use JUnit4 runner please add a dependency for `junit` or `junit-vintage-engine` to your project explicitly.
 Very simple java class with runner implementation:
 ```java
 @RunWith(JUnitRunner.class)
@@ -72,10 +73,11 @@ In the IDE reporting is shown:
 
 ## Compatibility matrix
 | jbehave-junit-support | jbehave  |
-|---------------------- | --------:|
+|-----------------------| --------:|
 | 1.0.1                 | 4.0.5    |
 | 1.2.7                 | 4.1.3    |
 | 4.3.5                 | 4.3.5    |
 | 4.6.1                 | 4.6.1    |
 | 4.8.0                 | 4.8      |
 | 4.8.3                 | 4.8.3    |
+| 5.0.0                 | 5.0      |

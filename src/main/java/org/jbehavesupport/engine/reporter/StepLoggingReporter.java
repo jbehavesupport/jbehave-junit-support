@@ -21,7 +21,12 @@ package org.jbehavesupport.engine.reporter;
 import org.jbehave.core.configuration.Configuration;
 import org.jbehave.core.failures.PendingStepFound;
 import org.jbehave.core.failures.UUIDExceptionWrapper;
+import org.jbehave.core.model.Scenario;
+import org.jbehave.core.model.Step;
 import org.jbehave.core.model.Story;
+import org.jbehave.core.steps.StepCollector;
+import org.jbehave.core.steps.StepCreator.StepExecutionType;
+import org.jbehave.core.steps.Timing;
 import org.jbehavesupport.engine.descriptor.JBehaveTestDescriptor;
 import org.junit.platform.engine.EngineExecutionListener;
 import org.junit.platform.engine.TestDescriptor;
@@ -51,6 +56,10 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     private Iterator<TestDescriptor> stepsDescriptors;
     private Deque<TestDescriptor> currentStepDescriptor = new ArrayDeque<>();
 
+    private boolean isInBeforeStories = false;
+    private boolean isInAfterStories = false;
+    private boolean isInMainScenario = false;
+
     public StepLoggingReporter(EngineExecutionListener engineExecutionListener, JBehaveTestDescriptor rootDescriptor,
                                Configuration configuration) {
         this.engineExecutionListener = engineExecutionListener;
@@ -78,18 +87,59 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
 
     private void beforeStory(Story story) {
         for (TestDescriptor descriptor : rootDescriptor.getChildren()) {
-            if (descriptor.isTest()
-                && (isEligibleAs(story, descriptor, BEFORE_STORIES)
-                || isEligibleAs(story, descriptor, AFTER_STORIES))) {
-                currentStoryDescriptor = descriptor;
-                engineExecutionListener.executionStarted(currentStoryDescriptor);
-
-            }
             if (descriptor.isContainer()
-                && isEligibleAs(descriptor, story.getName())) {
+                && containerIsEligibleAs(descriptor, story.getName())) {
                 currentStoryDescriptor = descriptor;
                 engineExecutionListener.executionStarted(currentStoryDescriptor);
                 scenariosDescriptors = currentStoryDescriptor.getChildren().iterator();
+            }
+        }
+    }
+
+    @Override
+    public void beforeStoriesSteps(StepCollector.Stage stage) {
+        switch (stage) {
+            case BEFORE:
+                isInBeforeStories = true;
+                handleBeforeAfterStoriesExecution(BEFORE_STORIES, true);
+                break;
+            case AFTER:
+                isInAfterStories = true;
+                handleBeforeAfterStoriesExecution(AFTER_STORIES, true);
+                break;
+            default:
+                throw new IllegalStateException("StepCollector Stage should not exists: " + stage);
+        }
+        super.beforeStoriesSteps(stage);
+    }
+
+    @Override
+    public void afterStoriesSteps(StepCollector.Stage stage) {
+        switch (stage) {
+            case BEFORE:
+                isInBeforeStories = false;
+                handleBeforeAfterStoriesExecution(BEFORE_STORIES, false);
+                break;
+            case AFTER:
+                isInAfterStories = false;
+                handleBeforeAfterStoriesExecution(AFTER_STORIES, false);
+                break;
+            default:
+                throw new IllegalStateException("StepCollector Stage should not exists: " + stage);
+        }
+        super.afterStoriesSteps(stage);
+    }
+
+    private void handleBeforeAfterStoriesExecution(String storyName, boolean start) {
+        for (TestDescriptor descriptor : rootDescriptor.getChildren()) {
+            if (descriptor.isTest() && testIsEligibleAs(descriptor, storyName)) {
+                currentStoryDescriptor = descriptor;
+                if (start) {
+                    engineExecutionListener.executionStarted(currentStoryDescriptor);
+                } else {
+                    engineExecutionListener.executionFinished(currentStoryDescriptor, TestExecutionResult.successful());
+                }
+
             }
         }
     }
@@ -109,13 +159,14 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     }
 
     @Override
-    public void beforeScenario(String scenarioTitle) {
-        if (notAGivenStory()) {
+    public void beforeScenario(Scenario scenario) {
+        if (notAGivenStory() && (!isInBeforeStories || !isInAfterStories)) {
             currentScenarioDescriptor = scenariosDescriptors.next();
             stepsDescriptors = getAllChildren(currentScenarioDescriptor.getChildren(), new ArrayList<>()).iterator();
             examplesDescriptors = getAllExamples(currentScenarioDescriptor.getChildren()).iterator();
             engineExecutionListener.executionStarted(currentScenarioDescriptor);
-            super.beforeScenario(scenarioTitle);
+            isInMainScenario = true;
+            super.beforeScenario(scenario);
         }
     }
 
@@ -148,16 +199,21 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     }
 
     @Override
-    public void afterScenario() {
-        super.afterScenario();
-        if (notAGivenStory()) {
+    public void afterScenario(Timing timing) {
+        super.afterScenario(timing);
+        if (shouldReportStep()) {
             engineExecutionListener.executionFinished(currentScenarioDescriptor, TestExecutionResult.successful());
+            // main scenario starts before given stories are run,
+            // so we need to handle the case of afterScenario of given story
+            if (notAGivenStory()) {
+                isInMainScenario = false;
+            }
         }
     }
 
     @Override
-    public void beforeStep(String step) {
-        if (notAGivenStory()) {
+    public void beforeStep(Step step) {
+        if (StepExecutionType.EXECUTABLE == step.getExecutionType() && shouldReportStep()) {
             currentStepDescriptor.push(stepsDescriptors.next());
             engineExecutionListener.executionStarted(currentStepDescriptor.peek());
         }
@@ -167,7 +223,7 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     @Override
     public void successful(String step) {
         super.successful(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             engineExecutionListener.executionFinished(currentStepDescriptor.pop(), TestExecutionResult.successful());
         }
     }
@@ -179,7 +235,7 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
         }
         super.failed(step, cause);
         engineExecutionListener.executionFinished(currentStepDescriptor.peek(), TestExecutionResult.failed(cause));
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             engineExecutionListener.executionFinished(currentStepDescriptor.peek(), TestExecutionResult.successful());
         }
     }
@@ -187,7 +243,7 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     @Override
     public void notPerformed(String step) {
         super.notPerformed(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             currentStepDescriptor.push(stepsDescriptors.next());
             engineExecutionListener.executionSkipped(currentStepDescriptor.peek(), "Not performed");
         }
@@ -196,27 +252,27 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     @Override
     public void pending(String step) {
         super.pending(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             currentStepDescriptor.push(stepsDescriptors.next());
             engineExecutionListener.executionFinished(currentStepDescriptor.peek(), TestExecutionResult.failed(new PendingStepFound(step)));
         }
     }
 
     @Override
-    public void example(Map<String, String> tableRow) {
-        if (notAGivenStory()) {
+    public void example(Map<String, String> tableRow, int exampleIndex) {
+        if (shouldReportStep()) {
             if (nonNull(currentExampleDescriptor)) {
                 engineExecutionListener.executionFinished(currentExampleDescriptor, TestExecutionResult.successful());
             }
             currentExampleDescriptor = examplesDescriptors.next();
             engineExecutionListener.executionStarted(currentExampleDescriptor);
         }
-        super.example(tableRow);
+        super.example(tableRow, exampleIndex);
     }
 
     @Override
     public void afterExamples() {
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             engineExecutionListener.executionFinished(currentExampleDescriptor, TestExecutionResult.successful());
         }
         super.afterExamples();
@@ -225,10 +281,19 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     @Override
     public void ignorable(String step) {
         super.ignorable(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             currentStepDescriptor.push(stepsDescriptors.next());
             engineExecutionListener.executionSkipped(currentStepDescriptor.peek(), "Ignored");
         }
+    }
+
+    private boolean shouldReportStep() {
+        // not a given story
+        // not in before stories or after stories
+        // and is in scenario of the main story (e.g. not some custom before story hook on method or something like that)
+        return notAGivenStory()
+            && (!isInBeforeStories || !isInAfterStories)
+            && isInMainScenario;
     }
 
 }

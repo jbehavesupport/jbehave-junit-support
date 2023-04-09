@@ -25,13 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.jbehave.core.model.ExamplesTable;
 import org.jbehave.core.model.GivenStories;
 import org.jbehave.core.model.Lifecycle;
-import org.jbehave.core.model.Meta;
 import org.jbehave.core.model.Narrative;
 import org.jbehave.core.model.OutcomesTable;
 import org.jbehave.core.model.Scenario;
+import org.jbehave.core.model.Step;
 import org.jbehave.core.model.Story;
 import org.jbehave.core.model.StoryDuration;
 import org.jbehave.core.reporters.NullStoryReporter;
+import org.jbehave.core.steps.Timing;
 
 /**
  * @author Michal Bocek
@@ -41,8 +42,8 @@ import org.jbehave.core.reporters.NullStoryReporter;
 public class LoggingReporter extends NullStoryReporter {
 
     @Override
-    public void storyNotAllowed(Story story, String filter) {
-        log.info("Story: {} not allowed for filter: {}", story.getName(), filter);
+    public void storyExcluded(Story story, String filter) {
+        log.info("Story: {} excluded by filter: {}", story.getName(), filter);
     }
 
     @Override
@@ -80,30 +81,25 @@ public class LoggingReporter extends NullStoryReporter {
     }
 
     @Override
-    public void lifecyle(Lifecycle lifecycle) {
+    public void lifecycle(Lifecycle lifecycle) {
         if (!lifecycle.isEmpty()) {
             log.info("Lifecycle: {}", lifecycle);
         }
     }
 
     @Override
-    public void scenarioNotAllowed(Scenario scenario, String filter) {
-        log.info("Scenario: {} not allowed by filer: {}", scenario.getTitle(), filter);
+    public void scenarioExcluded(Scenario scenario, String filter) {
+        log.info("Scenario: {} excluded by filer: {}", scenario.getTitle(), filter);
     }
 
     @Override
-    public void beforeScenario(String scenarioTitle) {
-        log.info("Before scenario: {}", scenarioTitle);
+    public void beforeScenario(Scenario scenario) {
+        log.info("Before scenario: {}", scenario.getTitle());
     }
 
     @Override
-    public void scenarioMeta(Meta meta) {
-        log.info("Scenario meta: {}", meta);
-    }
-
-    @Override
-    public void afterScenario() {
-        log.info("After scenario");
+    public void afterScenario(Timing timing) {
+        log.info("After scenario, timing: {}", timing);
     }
 
     @Override
@@ -122,8 +118,8 @@ public class LoggingReporter extends NullStoryReporter {
     }
 
     @Override
-    public void example(Map<String, String> tableRow) {
-        log.info("Example: {}", tableRow);
+    public void example(Map<String, String> tableRow, int exampleIndex) {
+        log.info("Example: {}, index: {}", tableRow, exampleIndex);
     }
 
     @Override
@@ -132,8 +128,8 @@ public class LoggingReporter extends NullStoryReporter {
     }
 
     @Override
-    public void beforeStep(String step) {
-        log.info("Before step: {}", step);
+    public void beforeStep(Step step) {
+        log.info("Before step: {}", step.getStepAsString());
     }
 
     @Override

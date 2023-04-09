@@ -32,7 +32,7 @@ import java.util.List;
 public class TwoGivenStoryBeforeScenarioStories extends AbstractStories {
 
     @Override
-    protected List<String> storyPaths() {
+    public List<String> storyPaths() {
         return Arrays.asList(
             "org/jbehavesupport/runner/story/GivenStoryBeforeScenario.story",
             "org/jbehavesupport/runner/story/SecondGivenStoryBeforeScenario.story"

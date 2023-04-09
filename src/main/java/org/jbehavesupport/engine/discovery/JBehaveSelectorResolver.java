@@ -21,11 +21,11 @@ package org.jbehavesupport.engine.discovery;
 
 import lombok.SneakyThrows;
 import org.jbehave.core.ConfigurableEmbedder;
+import org.jbehave.core.embedder.AllStepCandidates;
 import org.jbehave.core.embedder.Embedder;
 import org.jbehave.core.embedder.PerformableTree;
 import org.jbehave.core.failures.BatchFailures;
 import org.jbehave.core.model.Story;
-import org.jbehave.core.steps.CandidateSteps;
 import org.jbehave.core.steps.NullStepMonitor;
 import org.jbehavesupport.engine.JUnit5Stories;
 import org.jbehavesupport.engine.descriptor.JBehaveTestDescriptor;
@@ -74,6 +74,7 @@ public class JBehaveSelectorResolver implements SelectorResolver {
 
         ConfigurableEmbedder configurableEmbedder = testClass.newInstance();
         configuredEmbedder = configurableEmbedder.configuredEmbedder();
+        setupNullStepMonitor(configuredEmbedder);
         storyPaths = getStoryPaths(configurableEmbedder);
 
         UniqueId classDescriptorId = engineId.append(SEGMENT_TYPE_CLASS, testClass.getCanonicalName());
@@ -88,7 +89,7 @@ public class JBehaveSelectorResolver implements SelectorResolver {
 
     private List<JBehaveTestDescriptor> getStoriesDescriptors(UniqueId parentId, Embedder configuredEmbedder, List<String> storyPaths) {
         StoryResult storyResult = StoryParser.parse(createPerformableTree(configuredEmbedder, storyPaths), ReportLevel.valueOf(reportLevel))
-            .withCandidateSteps(getCandidateStepsWithNullStepMonitor(configuredEmbedder))
+            .withCandidateSteps(configuredEmbedder.stepsFactory().createCandidateSteps())
             .withKeywords(configuredEmbedder.configuration().keywords())
             .buildDescriptor(parentId);
 
@@ -99,7 +100,7 @@ public class JBehaveSelectorResolver implements SelectorResolver {
         BatchFailures failures = new BatchFailures(configuredEmbedder.embedderControls().verboseFailures());
         PerformableTree performableTree = new PerformableTree();
         PerformableTree.RunContext context = performableTree.newRunContext(configuredEmbedder.configuration(),
-            configuredEmbedder.stepsFactory().createCandidateSteps(),
+            new AllStepCandidates(configuredEmbedder.stepsFactory().createCandidateSteps()),
             configuredEmbedder.embedderMonitor(),
             configuredEmbedder.metaFilter(), failures);
 
@@ -112,13 +113,9 @@ public class JBehaveSelectorResolver implements SelectorResolver {
         return performableTree;
     }
 
-    private List<CandidateSteps> getCandidateStepsWithNullStepMonitor(Embedder embedder) {
+    private void setupNullStepMonitor(Embedder embedder) {
         NullStepMonitor stepMonitor = new NullStepMonitor();
-        List<CandidateSteps> candidateSteps = embedder.stepsFactory().createCandidateSteps();
-        for (CandidateSteps candidateStep : candidateSteps) {
-            candidateStep.configuration().useStepMonitor(stepMonitor);
-        }
-        return candidateSteps;
+        embedder.configuration().useStepMonitor(stepMonitor);
     }
 
     @SneakyThrows({NoSuchMethodException.class, InvocationTargetException.class, IllegalAccessException.class})

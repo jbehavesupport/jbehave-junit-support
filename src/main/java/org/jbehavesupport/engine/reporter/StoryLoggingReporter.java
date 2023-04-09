@@ -50,7 +50,7 @@ public class StoryLoggingReporter extends AbstractLoggingReporter {
         } else {
             for (TestDescriptor descriptor : rootDescriptor.getChildren()) {
                 if (descriptor.isTest()
-                    && isEligibleAs(descriptor, story.getName())) {
+                    && containerIsEligibleAs(descriptor, story.getName())) {
                     currentStoryDescriptor = descriptor;
                     engineExecutionListener.executionStarted(currentStoryDescriptor);
                 }

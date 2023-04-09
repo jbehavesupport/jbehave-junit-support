@@ -18,7 +18,6 @@
  */
 package org.jbehavesupport.engine.reporter;
 
-import org.jbehave.core.model.Story;
 import org.junit.platform.engine.TestDescriptor;
 
 import static org.jbehavesupport.runner.JUnitRunnerFormatter.buildStoryText;
@@ -30,11 +29,11 @@ public class AbstractLoggingReporter extends LoggingReporter {
 
     protected int givenStories = 0;
 
-    protected boolean isEligibleAs(Story story, TestDescriptor testDescriptor, String storyName) {
-        return story.getName().equals(storyName) && testDescriptor.getDisplayName().startsWith(storyName);
+    protected boolean testIsEligibleAs(TestDescriptor testDescriptor, String storyName) {
+        return testDescriptor.getDisplayName().startsWith(storyName);
     }
 
-    protected boolean isEligibleAs(TestDescriptor testDescriptor, String storyName) {
+    protected boolean containerIsEligibleAs(TestDescriptor testDescriptor, String storyName) {
         return removeClass(testDescriptor.getDisplayName()).equals(buildStoryText(storyName));
     }
 

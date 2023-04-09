@@ -53,7 +53,7 @@ public class JUnitStoryReporter extends AbstractJUnitReporter {
         } else {
             for (Description description : rootDescription.getChildren()) {
                 if (description.isTest()
-                    && isEligibleAs(description, story.getName())) {
+                    && suiteIsEligibleAs(description, story.getName())) {
                     currentStoryDescription = description;
                     notifier.fireTestStarted(currentStoryDescription);
                 }

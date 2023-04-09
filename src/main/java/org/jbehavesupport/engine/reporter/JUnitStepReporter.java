@@ -20,7 +20,10 @@ package org.jbehavesupport.engine.reporter;
 
 import org.jbehave.core.configuration.Configuration;
 import org.jbehave.core.failures.UUIDExceptionWrapper;
+import org.jbehave.core.model.Scenario;
+import org.jbehave.core.model.Step;
 import org.jbehave.core.model.Story;
+import org.jbehave.core.steps.Timing;
 import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunNotifier;
@@ -101,13 +104,13 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     }
 
     @Override
-    public void beforeScenario(String scenarioTitle) {
+    public void beforeScenario(Scenario scenario) {
         if (notAGivenStory()) {
             currentScenarioDescription = scenariosDescriptions.next();
             stepsDescriptions = getAllChildren(currentScenarioDescription.getChildren(), new ArrayList<>()).iterator();
             examplesDescriptions = getAllExamples(currentScenarioDescription.getChildren()).iterator();
             notifier.fireTestStarted(currentScenarioDescription);
-            super.beforeScenario(scenarioTitle);
+            super.beforeScenario(scenario);
         }
     }
 
@@ -140,15 +143,15 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     }
 
     @Override
-    public void afterScenario() {
-        super.afterScenario();
+    public void afterScenario(Timing timing) {
+        super.afterScenario(timing);
         if (notAGivenStory()) {
             notifier.fireTestFinished(currentScenarioDescription);
         }
     }
 
     @Override
-    public void beforeStep(String step) {
+    public void beforeStep(Step step) {
         if (notAGivenStory()) {
             currentStepDescription.push(stepsDescriptions.next());
             notifier.fireTestStarted(currentStepDescription.peek());
@@ -195,7 +198,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     }
 
     @Override
-    public void example(Map<String, String> tableRow) {
+    public void example(Map<String, String> tableRow, int exampleIndex) {
         if (notAGivenStory()) {
             if (nonNull(currentExampleDescription)) {
                 notifier.fireTestFinished(currentExampleDescription);
@@ -203,7 +206,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
             currentExampleDescription = examplesDescriptions.next();
             notifier.fireTestStarted(currentExampleDescription);
         }
-        super.example(tableRow);
+        super.example(tableRow, exampleIndex);
     }
 
     @Override
