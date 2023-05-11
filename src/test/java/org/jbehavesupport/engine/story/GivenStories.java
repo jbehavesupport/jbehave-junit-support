@@ -8,7 +8,7 @@ import java.util.List;
 public class GivenStories extends AbstractStories {
 
     @Override
-    protected List<String> storyPaths() {
+    public List<String> storyPaths() {
         return Collections.singletonList(
             "org/jbehavesupport/runner/story/GivenStory.story"
         );

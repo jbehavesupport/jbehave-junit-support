@@ -35,7 +35,7 @@ public class CompositeStepStories extends AbstractStories {
     }
 
     @Override
-    protected List<String> storyPaths() {
+    public List<String> storyPaths() {
         return Collections.singletonList(
             "org/jbehavesupport/runner/story/CompositeStep.story"
         );

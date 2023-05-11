@@ -27,7 +27,7 @@ import org.jbehavesupport.runner.story.steps.TestSteps;
 public class NestedGivenStories extends AbstractStories {
 
     @Override
-    protected List<String> storyPaths() {
+    public List<String> storyPaths() {
         return Collections.singletonList(
             "org/jbehavesupport/runner/story/NestedGivenStory.story"
         );

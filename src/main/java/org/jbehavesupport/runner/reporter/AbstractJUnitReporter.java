@@ -34,11 +34,11 @@ public class AbstractJUnitReporter extends LoggingReporter {
 
     protected int givenStories = 0;
 
-    protected boolean isEligibleAs(Story story, Description description, String storyName) {
-        return story.getName().equals(storyName) && description.getDisplayName().startsWith(storyName);
+    protected boolean testIsEligibleAs(Description description, String storyName) {
+        return description.getDisplayName().startsWith(storyName);
     }
 
-    protected boolean isEligibleAs(Description description, String storyName) {
+    protected boolean suiteIsEligibleAs(Description description, String storyName) {
         return removeClass(description.getDisplayName()).equals(buildStoryText(storyName));
     }
 

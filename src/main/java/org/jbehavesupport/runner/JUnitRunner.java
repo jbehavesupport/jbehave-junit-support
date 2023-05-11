@@ -22,6 +22,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jbehave.core.ConfigurableEmbedder;
 import org.jbehave.core.configuration.Configuration;
+import org.jbehave.core.embedder.AllStepCandidates;
 import org.jbehave.core.embedder.Embedder;
 import org.jbehave.core.embedder.PerformableTree;
 import org.jbehave.core.failures.BatchFailures;
@@ -73,8 +74,9 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
         reportLevel = System.getProperty("jbehave.report.level", ReportLevel.STEP.name());
         ConfigurableEmbedder configurableEmbedder = testClass.newInstance();
         configuredEmbedder = configurableEmbedder.configuredEmbedder();
+        setupNullStepMonitor(configuredEmbedder);
         storyPaths = getStoryPaths(configurableEmbedder);
-        candidateSteps = getCandidateStepsWithNullStepMonitor(configuredEmbedder);
+        candidateSteps = configuredEmbedder.stepsFactory().createCandidateSteps();
         description = buildStoryDescription(testClass, configuredEmbedder.configuration());
     }
 
@@ -94,7 +96,6 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
                 } catch (Throwable e) {
                     throw new RuntimeException(e);
                 } finally {
-                    configuredEmbedder.generateCrossReference();
                     configuredEmbedder.generateSurefireReport();
                 }
             }
@@ -138,7 +139,7 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
         BatchFailures failures = new BatchFailures(configuredEmbedder.embedderControls().verboseFailures());
         PerformableTree performableTree = new PerformableTree();
         PerformableTree.RunContext context = performableTree.newRunContext(configuredEmbedder.configuration(),
-            configuredEmbedder.stepsFactory().createCandidateSteps(),
+            new AllStepCandidates(configuredEmbedder.stepsFactory().createCandidateSteps()),
             configuredEmbedder.embedderMonitor(),
             configuredEmbedder.metaFilter(), failures);
 
@@ -151,13 +152,9 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
         return performableTree;
     }
 
-    private List<CandidateSteps> getCandidateStepsWithNullStepMonitor(Embedder embedder) {
+    private void setupNullStepMonitor(Embedder embedder) {
         NullStepMonitor stepMonitor = new NullStepMonitor();
-        List<CandidateSteps> candidateSteps = embedder.stepsFactory().createCandidateSteps();
-        for (CandidateSteps candidateStep : candidateSteps) {
-            candidateStep.configuration().useStepMonitor(stepMonitor);
-        }
-        return candidateSteps;
+        embedder.configuration().useStepMonitor(stepMonitor);
     }
 
     @SuppressWarnings("unchecked")

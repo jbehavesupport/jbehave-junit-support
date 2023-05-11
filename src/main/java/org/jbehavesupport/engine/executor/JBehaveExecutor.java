@@ -62,7 +62,6 @@ public class JBehaveExecutor {
             engineExecutionListener.executionFinished(testDescriptor, TestExecutionResult.failed(e));
             throw new RuntimeException(e);
         } finally {
-            configuredEmbedder.generateCrossReference();
             configuredEmbedder.generateSurefireReport();
         }
     }

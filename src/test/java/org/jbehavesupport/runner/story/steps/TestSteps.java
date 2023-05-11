@@ -18,6 +18,7 @@
  */
 package org.jbehavesupport.runner.story.steps;
 
+import org.jbehave.core.annotations.BeforeStory;
 import org.jbehave.core.annotations.Composite;
 import org.jbehave.core.annotations.Given;
 import org.jbehave.core.annotations.Then;
@@ -31,6 +32,11 @@ import org.slf4j.LoggerFactory;
  * @since 26/08/16
  */
 public class TestSteps {
+
+    @BeforeStory
+    public void before() {
+        logger.info("Before story custom step");
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(TestSteps.class);
 

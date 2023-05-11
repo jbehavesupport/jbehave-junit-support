@@ -20,7 +20,12 @@ package org.jbehavesupport.runner.reporter;
 
 import org.jbehave.core.configuration.Configuration;
 import org.jbehave.core.failures.UUIDExceptionWrapper;
+import org.jbehave.core.model.Scenario;
+import org.jbehave.core.model.Step;
 import org.jbehave.core.model.Story;
+import org.jbehave.core.steps.StepCollector;
+import org.jbehave.core.steps.StepCreator.StepExecutionType;
+import org.jbehave.core.steps.Timing;
 import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunNotifier;
@@ -46,6 +51,10 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     private Description currentExampleDescription;
     private Iterator<Description> stepsDescriptions;
     private Deque<Description> currentStepDescription = new ArrayDeque<>();
+
+    private boolean isInBeforeStories = false;
+    private boolean isInAfterStories = false;
+    private boolean isInMainScenario = false;
 
     public JUnitStepReporter(RunNotifier notifier, Description rootDescription,
                              Configuration configuration) {
@@ -74,18 +83,58 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
 
     private void beforeStory(Story story) {
         for (Description description : rootDescription.getChildren()) {
-            if (description.isTest()
-                && (isEligibleAs(story, description, BEFORE_STORIES)
-                || isEligibleAs(story, description, AFTER_STORIES))) {
-                currentStoryDescription = description;
-                notifier.fireTestStarted(currentStoryDescription);
-
-            }
             if (description.isSuite()
-                && isEligibleAs(description, story.getName())) {
+                && suiteIsEligibleAs(description, story.getName())) {
                 currentStoryDescription = description;
                 notifier.fireTestStarted(currentStoryDescription);
                 scenariosDescriptions = currentStoryDescription.getChildren().iterator();
+            }
+        }
+    }
+
+    @Override
+    public void beforeStoriesSteps(StepCollector.Stage stage) {
+        switch (stage) {
+            case BEFORE:
+                isInBeforeStories = true;
+                handleBeforeAfterStoriesExecution(BEFORE_STORIES, true);
+                break;
+            case AFTER:
+                isInAfterStories = true;
+                handleBeforeAfterStoriesExecution(AFTER_STORIES, true);
+                break;
+            default:
+                throw new IllegalStateException("StepCollector Stage should not exists: " + stage);
+        }
+        super.beforeStoriesSteps(stage);
+    }
+
+    @Override
+    public void afterStoriesSteps(StepCollector.Stage stage) {
+        switch (stage) {
+            case BEFORE:
+                isInBeforeStories = false;
+                handleBeforeAfterStoriesExecution(BEFORE_STORIES, false);
+                break;
+            case AFTER:
+                isInAfterStories = false;
+                handleBeforeAfterStoriesExecution(AFTER_STORIES, false);
+                break;
+            default:
+                throw new IllegalStateException("StepCollector Stage should not exists: " + stage);
+        }
+        super.afterStoriesSteps(stage);
+    }
+
+    private void handleBeforeAfterStoriesExecution(String storyName, boolean start) {
+        for (Description description : rootDescription.getChildren()) {
+            if (description.isTest() && testIsEligibleAs(description, storyName)) {
+                currentStoryDescription = description;
+                if (start) {
+                    notifier.fireTestStarted(currentStoryDescription);
+                } else {
+                    notifier.fireTestFinished(currentStoryDescription);
+                }
             }
         }
     }
@@ -105,13 +154,14 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     }
 
     @Override
-    public void beforeScenario(String scenarioTitle) {
-        if (notAGivenStory()) {
+    public void beforeScenario(Scenario scenario) {
+        if (notAGivenStory() && (!isInBeforeStories || !isInAfterStories)) {
             currentScenarioDescription = scenariosDescriptions.next();
             stepsDescriptions = getAllChildren(currentScenarioDescription.getChildren(), new ArrayList<>()).iterator();
             examplesDescriptions = getAllExamples(currentScenarioDescription.getChildren()).iterator();
             notifier.fireTestStarted(currentScenarioDescription);
-            super.beforeScenario(scenarioTitle);
+            isInMainScenario = true;
+            super.beforeScenario(scenario);
         }
     }
 
@@ -144,16 +194,21 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     }
 
     @Override
-    public void afterScenario() {
-        super.afterScenario();
-        if (notAGivenStory()) {
+    public void afterScenario(Timing timing) {
+        super.afterScenario(timing);
+        if (shouldReportStep()) {
             notifier.fireTestFinished(currentScenarioDescription);
+            // main scenario starts before given stories are run,
+            // so we need to handle the case of afterScenario of given story
+            if (notAGivenStory()) {
+                isInMainScenario = false;
+            }
         }
     }
 
     @Override
-    public void beforeStep(String step) {
-        if (notAGivenStory()) {
+    public void beforeStep(Step step) {
+        if (StepExecutionType.EXECUTABLE == step.getExecutionType() && shouldReportStep()) {
             currentStepDescription.push(stepsDescriptions.next());
             notifier.fireTestStarted(currentStepDescription.peek());
         }
@@ -163,7 +218,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     @Override
     public void successful(String step) {
         super.successful(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             notifier.fireTestFinished(currentStepDescription.pop());
         }
     }
@@ -175,7 +230,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
         }
         super.failed(step, cause);
         notifier.fireTestFailure(new Failure(currentStepDescription.peek(), cause));
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             notifier.fireTestFinished(currentStepDescription.peek());
         }
     }
@@ -183,7 +238,7 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     @Override
     public void notPerformed(String step) {
         super.notPerformed(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             currentStepDescription.push(stepsDescriptions.next());
             notifier.fireTestIgnored(currentStepDescription.peek());
         }
@@ -192,27 +247,27 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     @Override
     public void pending(String step) {
         super.pending(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             currentStepDescription.push(stepsDescriptions.next());
             notifier.fireTestIgnored(currentStepDescription.peek());
         }
     }
 
     @Override
-    public void example(Map<String, String> tableRow) {
-        if (notAGivenStory()) {
+    public void example(Map<String, String> tableRow, int exampleIndex) {
+        if (shouldReportStep()) {
             if (nonNull(currentExampleDescription)) {
                 notifier.fireTestFinished(currentExampleDescription);
             }
             currentExampleDescription = examplesDescriptions.next();
             notifier.fireTestStarted(currentExampleDescription);
         }
-        super.example(tableRow);
+        super.example(tableRow, exampleIndex);
     }
 
     @Override
     public void afterExamples() {
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             notifier.fireTestFinished(currentExampleDescription);
         }
         super.afterExamples();
@@ -221,9 +276,19 @@ public class JUnitStepReporter extends AbstractJUnitReporter {
     @Override
     public void ignorable(String step) {
         super.ignorable(step);
-        if (notAGivenStory()) {
+        if (shouldReportStep()) {
             currentStepDescription.push(stepsDescriptions.next());
             notifier.fireTestIgnored(currentStepDescription.peek());
         }
     }
+
+    private boolean shouldReportStep() {
+        // not a given story
+        // not in before stories or after stories
+        // and is in scenario of the main story (e.g. not some custom before story hook on method or something like that)
+        return notAGivenStory()
+            && (!isInBeforeStories || !isInAfterStories)
+            && isInMainScenario;
+    }
+
 }

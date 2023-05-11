@@ -31,7 +31,7 @@ import java.util.List;
 public class MultipleStories extends AbstractStories {
 
     @Override
-    protected List<String> storyPaths() {
+    public List<String> storyPaths() {
         return Arrays.asList(
             "org/jbehavesupport/runner/story/multipleScenario/Scenario01.story",
             "org/jbehavesupport/runner/story/multipleScenario/Scenario01-1.story",
