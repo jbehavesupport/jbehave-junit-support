@@ -21,6 +21,7 @@ package org.jbehavesupport.engine.reporter;
 import org.jbehave.core.configuration.Configuration;
 import org.jbehave.core.failures.PendingStepFound;
 import org.jbehave.core.failures.UUIDExceptionWrapper;
+import org.jbehave.core.model.Lifecycle;
 import org.jbehave.core.model.Scenario;
 import org.jbehave.core.model.Step;
 import org.jbehave.core.model.Story;
@@ -57,6 +58,8 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     private Deque<TestDescriptor> currentStepDescriptor = new ArrayDeque<>();
 
     private boolean isInBeforeStories = false;
+    private boolean isInBeforeScenario = false;
+    private boolean isInAfterScenario = false;
     private boolean isInAfterStories = false;
     private boolean isInMainScenario = false;
 
@@ -170,6 +173,32 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
         }
     }
 
+    @Override
+    public void beforeScenarioSteps(StepCollector.Stage stage, Lifecycle.ExecutionType cycle){
+        // as in jbehave-core v5.0:
+        // Always trigger StoryReporter.beforeStep(Step) hook and report all outcomes (previously only failures were reported, successful outcome was silent) for methods annotated with @BeforeStories, @AfterStories, @BeforeStory, @AfterStory, @BeforeScenario, @AfterScenario
+        // @BeforeScenario steps are executed between cycle SYSTEM and stage BEFORE and next stage, so we won't report steps in this combination
+        if (cycle == Lifecycle.ExecutionType.SYSTEM && stage == StepCollector.Stage.BEFORE) {
+            isInBeforeScenario = true;
+        } else {
+            isInBeforeScenario = false;
+        }
+        super.beforeScenarioSteps(stage, cycle);
+    }
+
+    @Override
+    public void afterScenarioSteps(StepCollector.Stage stage, Lifecycle.ExecutionType cycle){
+        // as in jbehave-core v5.0:
+        // Always trigger StoryReporter.beforeStep(Step) hook and report all outcomes (previously only failures were reported, successful outcome was silent) for methods annotated with @BeforeStories, @AfterStories, @BeforeStory, @AfterStory, @BeforeScenario, @AfterScenario
+        // @AfterScenario steps are executed between cycle USER and stage AFTER and next stage, so we won't report steps in this combination
+        if (cycle == Lifecycle.ExecutionType.USER && stage == StepCollector.Stage.AFTER) {
+            isInAfterScenario = true;
+        } else if (cycle == Lifecycle.ExecutionType.SYSTEM && stage == StepCollector.Stage.AFTER) {
+            isInAfterScenario = false;
+        }
+        super.beforeScenarioSteps(stage, cycle);
+    }
+
     private List<TestDescriptor> getAllExamples(Set<? extends TestDescriptor> children) {
         List<TestDescriptor> result = new ArrayList<>();
         for (TestDescriptor child : children) {
@@ -201,7 +230,7 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     @Override
     public void afterScenario(Timing timing) {
         super.afterScenario(timing);
-        if (shouldReportStep()) {
+        if (notAGivenStory() && (!isInBeforeStories || !isInAfterStories)) {
             engineExecutionListener.executionFinished(currentScenarioDescriptor, TestExecutionResult.successful());
             // main scenario starts before given stories are run,
             // so we need to handle the case of afterScenario of given story
@@ -290,9 +319,12 @@ public class StepLoggingReporter extends AbstractLoggingReporter {
     private boolean shouldReportStep() {
         // not a given story
         // not in before stories or after stories
+        // not in before scenario or after scenario
         // and is in scenario of the main story (e.g. not some custom before story hook on method or something like that)
         return notAGivenStory()
             && (!isInBeforeStories || !isInAfterStories)
+            && !isInBeforeScenario
+            && !isInAfterScenario
             && isInMainScenario;
     }
 
