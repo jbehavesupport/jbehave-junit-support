@@ -83,7 +83,7 @@ public final class JBehaveTestEngine implements TestEngine  {
 
     @SneakyThrows(ReflectiveOperationException.class)
     private static Comparator<TestDescriptor> getComparatorInstance(String className) {
-        return (Comparator<TestDescriptor>) Class.forName(className).newInstance();
+        return (Comparator<TestDescriptor>) Class.forName(className).getDeclaredConstructor().newInstance();
     }
 
 }

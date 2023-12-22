@@ -67,12 +67,12 @@ public class JBehaveSelectorResolver implements SelectorResolver {
         return resolveTestClass((Class<? extends JUnit5Stories>)selector.getJavaClass(), context);
     }
 
-    @SneakyThrows({IllegalAccessException.class, InstantiationException.class})
+    @SneakyThrows({ReflectiveOperationException.class})
     private Resolution resolveTestClass(Class<? extends ConfigurableEmbedder> testClass, Context context) {
         List<String> storyPaths;
         Embedder configuredEmbedder;
 
-        ConfigurableEmbedder configurableEmbedder = testClass.newInstance();
+        ConfigurableEmbedder configurableEmbedder = testClass.getDeclaredConstructor().newInstance();
         configuredEmbedder = configurableEmbedder.configuredEmbedder();
         setupNullStepMonitor(configuredEmbedder);
         storyPaths = getStoryPaths(configurableEmbedder);
