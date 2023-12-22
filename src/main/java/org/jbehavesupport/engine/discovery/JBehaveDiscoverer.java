@@ -27,6 +27,10 @@ import org.junit.platform.engine.UniqueId;
 import org.junit.platform.engine.support.descriptor.EngineDescriptor;
 import org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver;
 
+import java.util.function.Predicate;
+
+import static java.lang.reflect.Modifier.isAbstract;
+
 public class JBehaveDiscoverer {
 
 	public EngineDescriptor discover(EngineDiscoveryRequest discoveryRequest, UniqueId uniqueId) {
@@ -37,9 +41,21 @@ public class JBehaveDiscoverer {
 
 	private EngineDiscoveryRequestResolver<TestDescriptor> getResolver(EngineDiscoveryRequest discoveryRequest, UniqueId engineId) {
         return EngineDiscoveryRequestResolver.builder()
-            .addClassContainerSelectorResolver(JUnit5Stories.class::isAssignableFrom)
+            .addClassContainerSelectorResolver(getJBehaveClassSelector())
             .addSelectorResolver(new JBehaveSelectorResolver(discoveryRequest, engineId))
             .build();
+    }
+
+    private static Predicate<Class<?>> getJBehaveClassSelector() {
+        return isCorrectClass().and(isNotAbstract());
+    }
+
+    private static Predicate<Class<?>> isNotAbstract() {
+        return clazz -> !isAbstract(clazz.getModifiers());
+    }
+
+    private static Predicate<Class<?>> isCorrectClass() {
+        return JUnit5Stories.class::isAssignableFrom;
     }
 
 }

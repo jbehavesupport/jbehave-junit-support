@@ -34,6 +34,28 @@ public class BasicStory extends JUnit5Story {
 }
 ```
 
+#### Ordering of test classes
+The ordering of classes is not guaranteed by default by the engine.
+If you need to influence order you can supply your own comparator class name in the parameter `jbehave.execution.order.comparator`
+either in system properties or in the JUnit Platform configuration file named `junit-platform.properties`.
+This comparator needs to implement the `Comparator<TestDescriptor>` interface and have a no-args constructor available.
+
+Example configuration:
+```java
+package com.application.comparator;
+
+public class DisplayNameComparator implements Comparator<TestDescriptor> {
+    @Override
+    public int compare(TestDescriptor o1, TestDescriptor o2) {
+        return o1.getDisplayName().compareTo(o2.getDisplayName());
+    }
+}
+```
+junit-platform.properties:
+```properties
+jbehave.execution.order.comparator=com.application.comparator.DisplayNameComparator
+```
+
 ### JUnit 4
 To use JUnit4 runner please add a dependency for `junit` or `junit-vintage-engine` to your project explicitly.
 Very simple java class with runner implementation:
@@ -81,3 +103,4 @@ In the IDE reporting is shown:
 | 4.8.0                 | 4.8      |
 | 4.8.3                 | 4.8.3    |
 | 5.0.0                 | 5.0      |
+| 5.0.1                 | 5.0      |
