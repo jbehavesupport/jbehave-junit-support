@@ -18,6 +18,11 @@
  */
 package org.jbehavesupport.runner.story.steps;
 
+import org.jbehave.core.annotations.AfterScenario;
+import org.jbehave.core.annotations.AfterStories;
+import org.jbehave.core.annotations.AfterStory;
+import org.jbehave.core.annotations.BeforeScenario;
+import org.jbehave.core.annotations.BeforeStories;
 import org.jbehave.core.annotations.BeforeStory;
 import org.jbehave.core.annotations.Composite;
 import org.jbehave.core.annotations.Given;
@@ -33,12 +38,47 @@ import org.slf4j.LoggerFactory;
  */
 public class TestSteps {
 
+    private static final Logger logger = LoggerFactory.getLogger(TestSteps.class);
+
     @BeforeStory
-    public void before() {
+    public void beforeStory() {
         logger.info("Before story custom step");
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(TestSteps.class);
+    @BeforeStories
+    public void beforeStories() {
+        logger.info("Before Stories custom step");
+    }
+
+    @BeforeScenario
+    public void beforeScenario() {
+        logger.info("Before scenario custom step");
+    }
+
+    @BeforeScenario
+    public void beforeScenario2() {
+        logger.info("Second before scenario custom step");
+    }
+
+    @AfterScenario
+    public void afterScenario() {
+        logger.info("After scenario custom step");
+    }
+
+    @AfterScenario
+    public void afterScenario2() {
+        logger.info("Second after scenario custom step");
+    }
+
+    @AfterStory
+    public void afterStory() {
+        logger.info("After story custom step");
+    }
+
+    @AfterStories
+    public void afterStories() {
+        logger.info("After stories custom step");
+    }
 
     @Given("say Hello")
     public void sayHello() {
