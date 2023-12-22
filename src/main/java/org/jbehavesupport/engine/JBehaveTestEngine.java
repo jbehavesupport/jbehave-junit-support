@@ -18,6 +18,7 @@
  */
 package org.jbehavesupport.engine;
 
+import lombok.SneakyThrows;
 import org.jbehavesupport.engine.descriptor.JBehaveTestDescriptor;
 import org.jbehavesupport.engine.discovery.JBehaveDiscoverer;
 import org.jbehavesupport.engine.executor.JBehaveExecutor;
@@ -28,13 +29,17 @@ import org.junit.platform.engine.TestDescriptor;
 import org.junit.platform.engine.TestEngine;
 import org.junit.platform.engine.UniqueId;
 
+import java.util.Comparator;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.platform.engine.TestExecutionResult.successful;
 
 public final class JBehaveTestEngine implements TestEngine  {
 
-	@Override
+    public static final String COMPARATOR_PROPERTY = "jbehave.execution.order.comparator";
+
+    @Override
 	public String getId() {
 		return "jbehave";
 	}
@@ -56,17 +61,29 @@ public final class JBehaveTestEngine implements TestEngine  {
 
     @Override
     public void execute(ExecutionRequest request) {
+        Optional<Comparator<TestDescriptor>> sortingComparator = request.getConfigurationParameters()
+            .get(COMPARATOR_PROPERTY, JBehaveTestEngine::getComparatorInstance);
+
         EngineExecutionListener engineExecutionListener = request.getEngineExecutionListener();
         TestDescriptor engineDescriptor = request.getRootTestDescriptor();
         engineExecutionListener.executionStarted(engineDescriptor);
         JBehaveExecutor jBehaveExecutor = new JBehaveExecutor(request);
-        engineDescriptor.getChildren()
+        Stream<? extends JBehaveTestDescriptor> testDescriptorStream = engineDescriptor.getChildren()
             .stream()
             .map(JBehaveTestDescriptor.class::cast)
-            .filter(JBehaveTestDescriptor::isRunnable)
-            .forEach(jBehaveExecutor::execute);
+            .filter(JBehaveTestDescriptor::isRunnable);
+
+        if (sortingComparator.isPresent()) {
+            testDescriptorStream = testDescriptorStream.sorted(sortingComparator.get());
+        }
+        testDescriptorStream.forEach(jBehaveExecutor::execute);
 
         engineExecutionListener.executionFinished(engineDescriptor, successful());
+    }
+
+    @SneakyThrows(ReflectiveOperationException.class)
+    private static Comparator<TestDescriptor> getComparatorInstance(String className) {
+        return (Comparator<TestDescriptor>) Class.forName(className).newInstance();
     }
 
 }
