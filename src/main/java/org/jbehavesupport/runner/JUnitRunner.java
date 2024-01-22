@@ -72,7 +72,7 @@ public class JUnitRunner extends BlockJUnit4ClassRunner {
 
         super(testClass);
         reportLevel = System.getProperty("jbehave.report.level", ReportLevel.STEP.name());
-        ConfigurableEmbedder configurableEmbedder = testClass.newInstance();
+        ConfigurableEmbedder configurableEmbedder = testClass.getDeclaredConstructor().newInstance();
         configuredEmbedder = configurableEmbedder.configuredEmbedder();
         setupNullStepMonitor(configuredEmbedder);
         storyPaths = getStoryPaths(configurableEmbedder);
